@@ -4,15 +4,8 @@ using CodeSample.Data;
 namespace CodeSample.Types
 {
 
-    public record AddThingInput(
-         string Name
-        );
 
-
-    public record UpdateThingInput(
-        int Id,
-        string Name
-        );
+    public record ThingInput(int? Id, string Name);
 
 
     public record Payload<T>(T Entity);
@@ -20,24 +13,38 @@ namespace CodeSample.Types
     public class Mutation
     {
 
-
         [UseTestDbContext]
-        public async Task<Payload<Thing>> AddOrderAsync(
-                    [ScopedService] TestDbContext context,
-                  CancellationToken cancellationToken,
-                  AddThingInput input)
+        public async Task<Payload<Thing>> UpsertThing(
+               [ScopedService] TestDbContext context,
+             CancellationToken cancellationToken,
+             ThingInput input)
         {
-            var thing = new Thing
+
+            Thing thing;
+
+            if (input.Id == null)
             {
-                Name = input.Name
-            };
+                thing = new Thing
+                {
+                    Name = input.Name
+                };
 
+                context.Things.Add(thing);
 
-            context.Things.Add(thing);
+            }
+            else
+            {
+                thing = new Thing
+                {
+                    Name = input.Name
+                };
+
+                context.Things.Update(thing);
+            }
+
             await context.SaveChangesAsync(cancellationToken);
 
             return new Payload<Thing>(thing);
-
         }
     }
 }
